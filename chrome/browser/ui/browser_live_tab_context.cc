@@ -333,9 +333,9 @@ sessions::LiveTab* BrowserLiveTabContext::AddRestoredTab(
       return nullptr;
     }
 
-    // Add the saved tab to the end of group.
+    // Add the saved tab to the group, respecting the original position.
     web_contents = chrome::AddRestoredTab(
-        browser, tab.navigations, tab_strip_model_->count(),
+        browser, tab.navigations, tab_index,
         tab.normalized_navigation_index(), tab.extension_app_id, group_id,
         select, tab.pinned, base::TimeTicks(), base::Time(), storage_namespace,
         tab.user_agent_override, tab.extra_data,
