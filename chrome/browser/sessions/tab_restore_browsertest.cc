@@ -2723,7 +2723,7 @@ GURL last_tab_url =
 // Close the middle tab in the group (index 2).
 CloseTab(2);
 
-// Verify the group now has 2 tabs.
+// Verify there are now 3 tabs total (2 in the group plus the initial tab).
 ASSERT_EQ(3, browser()->tab_strip_model()->count());
 
 // Restore the tab.
