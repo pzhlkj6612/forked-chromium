@@ -2693,6 +2693,60 @@ IN_PROC_BROWSER_TEST_F(TabRestoreSavedGroupsTest, RestoreTabInSavedGroup) {
             gfx::Range(1, 3));
 }
 
+// Verify restoring a tab in a saved group preserves its original position
+// within the group, rather than placing it at the end.
+IN_PROC_BROWSER_TEST_F(TabRestoreSavedGroupsTest,
+                        RestoreTabInSavedGroupAtOriginalPosition) {
+  tab_groups::TabGroupSyncService* service =
+      tab_groups::TabGroupSyncServiceFactory::GetForProfile(
+          browser()->profile());
+  ASSERT_TRUE(service);
+
+  // Create 3 tabs with unique URLs and group them.
+  AddTab(browser(), GURL("https://www.1.com"));
+  AddTab(browser(), GURL("https://www.2.com"));
+  AddTab(browser(), GURL("https://www.3.com"));
+
+  // Group tabs at indices 1, 2, 3 (index 0 is the initial tab).
+  tab_groups::TabGroupId group =
+      browser()->tab_strip_model()->AddToNewGroup({1, 2, 3});
+
+  ASSERT_TRUE(service->GetGroup(group));
+  base::Uuid saved_group_id = service->GetGroup(group)->saved_guid();
+
+  // Remember the URL of the middle tab (index 2) and the tab after it.
+  GURL middle_tab_url =
+      browser()->tab_strip_model()->GetWebContentsAt(2)->GetURL();
+  GURL last_tab_url =
+      browser()->tab_strip_model()->GetWebContentsAt(3)->GetURL();
+
+  // Close the middle tab in the group (index 2).
+  CloseTab(2);
+
+  // Verify there are now 3 tabs total (2 in the group plus the initial tab).
+  ASSERT_EQ(3, browser()->tab_strip_model()->count());
+
+  // Restore the tab.
+  chrome::RestoreTab(browser());
+
+  // The restored tab should be at index 2 (its original position), not at the
+  // end of the group.
+  ASSERT_EQ(4, browser()->tab_strip_model()->count());
+  EXPECT_EQ(middle_tab_url,
+              browser()->tab_strip_model()->GetWebContentsAt(2)->GetURL());
+  EXPECT_EQ(last_tab_url,
+              browser()->tab_strip_model()->GetWebContentsAt(3)->GetURL());
+
+  // Verify the group range is correct.
+  tab_groups::SavedTabGroup saved_group = *service->GetGroup(saved_group_id);
+  EXPECT_EQ(browser()
+                  ->tab_strip_model()
+                  ->group_model()
+                  ->GetTabGroup(saved_group.local_group_id().value())
+                  ->ListTabs(),
+              gfx::Range(1, 4));
+}
+
 // Verify closing all tabs in a group individually, then restoring all of the
 // tabs puts them in the same group.
 IN_PROC_BROWSER_TEST_F(
